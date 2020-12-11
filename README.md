@@ -1,0 +1,1 @@
+mobile distrinuted computing platform (sakkoo)
