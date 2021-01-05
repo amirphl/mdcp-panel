@@ -1,0 +1,87 @@
+version: "3.5"
+
+services:
+  db:
+    restart: always
+    image: postgres
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+    volumes:
+      - mdcp_panel_db:/var/lib/postgresql/data
+    networks:
+      - mdcp_panel_net
+
+  redis:
+    restart: always
+    image: redis
+    networks:
+      - mdcp_panel_net
+
+  web:
+    restart: always
+    build:
+      context: .
+    entrypoint: ./docker-entrypoint.sh
+    volumes:
+      - mdcp_panel_static:/code/staticfiles
+    networks:
+      - mdcp_panel_net
+    depends_on:
+      - db
+      - redis
+      - mosquitto
+      - state_manager
+    env_file:
+      - .env
+
+  state_manager:
+    restart: always
+    build:
+      context: .
+    command: >
+      sh -c "exec python3 state_manager.py"
+    networks:
+      - mdcp_panel_net
+    depends_on:
+      - redis
+      - mosquitto
+    env_file:
+      - .env
+
+  nginx:
+    restart: always
+    build:
+      context: ./nginx/
+    ports:
+      - "7979:8080"
+    networks:
+      - mdcp_panel_net
+    depends_on:
+      - web
+    volumes:
+      - mdcp_panel_static:/www/static
+
+  mosquitto:
+    restart: always
+    image: eclipse-mosquitto
+    ports:
+      - 1883:1883
+      - 8883:8883
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/logs
+      - mosquitto-conf:/mosquitto/config
+    networks:
+      - mdcp_panel_net
+
+volumes:
+  mdcp_panel_db: {}
+  mdcp_panel_static: {}
+  mosquitto-data: {}
+  mosquitto-logs: {}
+  mosquitto-conf: {}
+
+networks:
+  mdcp_panel_net: {}
