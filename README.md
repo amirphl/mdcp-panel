@@ -1,1 +1,1 @@
-mobile distrinuted computing platform (sakkoo)
+mobile distributed computing platform (mdcp)
