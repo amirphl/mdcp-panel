@@ -2,6 +2,7 @@ version: "3.5"
 
 services:
   db:
+    restart: always
     image: postgres
     environment:
       - POSTGRES_DB=${DB_NAME}
@@ -12,11 +13,19 @@ services:
     networks:
       - mdcp_panel_net
 
+  redis:
+    restart: always
+    image: redis
+    networks:
+      - mdcp_panel_net
+
   web:
+    restart: always
     build:
       context: .
     command: >
-      sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py test &&
+      sh -c "mkdir /code/static/ -p && python manage.py makemigrations && python manage.py migrate &&
+             python manage.py test && python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/code
@@ -25,6 +34,23 @@ services:
       - mdcp_panel_net
     depends_on:
       - db
+      - redis
+      - mosquitto
+      - state_manager
+    env_file:
+      - .env
+
+  state_manager:
+    restart: always
+    build:
+      context: .
+    command: >
+      sh -c "exec python3 state_manager.py"
+    networks:
+      - mdcp_panel_net
+    depends_on:
+      - redis
+      - mosquitto
     env_file:
       - .env
 
@@ -41,9 +67,25 @@ services:
     volumes:
       - mdcp_panel_static:/www/static
 
+  mosquitto:
+    restart: always
+    image: eclipse-mosquitto
+    ports:
+      - 1883:1883
+      - 8883:8883
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/logs
+      - mosquitto-conf:/mosquitto/config
+    networks:
+      - mdcp_panel_net
+
 volumes:
   mdcp_panel_db: {}
   mdcp_panel_static: {}
+  mosquitto-data: {}
+  mosquitto-logs: {}
+  mosquitto-conf: {}
 
 networks:
   mdcp_panel_net: {}
