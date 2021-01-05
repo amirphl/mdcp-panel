@@ -13,4 +13,5 @@ RUN mkdir /code
 WORKDIR /code
 COPY requirements.txt /code/
 RUN pip install -r requirements.txt
+RUN apt-get install vim -y
 COPY . /code/

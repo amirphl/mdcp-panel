@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+        <link rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+            integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
+            crossorigin="anonymous">
+        <style>
+            h1 {
+                font-size: 20px;
+                margin-top: 24px;
+                margin-bottom: 24px;
+            }
+            img {
+                height: 40px;
+            }
+        </style>
+         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+            integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+            crossorigin="anonymous">
+        </script>
+    </head>
+    <body>
+       <div class="col-md-6 offset-md-3 mt-5">
+            {% if errors %}
+                <h1>{{ errors }}}}</h1>
+            {% else %}
+                <div><a href="{{ executable.url }}">click to download executable</a></div>
+                <div><a href="{{ input_file.url }}">click to download input file</a></div>
+                {% if partial_results %}
+                    {% for x in partial_results %}
+                        <a href="{{ x.partial_result_file.url }}">
+                        click to download partial result file with id = {{ x.index }}</a>
+                    {% endfor %}
+                {% else %}
+                    <h1>job is in progress, please wait for the output(s) to become ready ...</h1>
+                {% endif%}
+            {% endif %}
+        </div>
+    </body>
+</html>

@@ -149,3 +149,25 @@ DATABASES = {
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'create_list_job'
+LOGOUT_REDIRECT_URL = 'login'
+
+MQTT_BROKER = os.getenv('MQTT_BROKER')
+NUM_DEVICES_PER_JOB = int(os.getenv('NUM_DEVICES_PER_JOB'))
+DEVICE_ = os.getenv('DEVICE')
+JOB_ = os.getenv('JOB')
+COMPLETED = os.getenv('COMPLETED')
+IN_PROGRESS = os.getenv('IN_PROGRESS')
+FAILED = os.getenv('FAILED')
+
+assert MQTT_BROKER is not None
+assert NUM_DEVICES_PER_JOB is not None
+assert DEVICE_ is not None
+assert JOB_ is not None
+assert COMPLETED is not None
+assert IN_PROGRESS is not None
+assert FAILED is not None
+
+assert NUM_DEVICES_PER_JOB >= 2

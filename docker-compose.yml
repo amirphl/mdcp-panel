@@ -23,12 +23,8 @@ services:
     restart: always
     build:
       context: .
-    command: >
-      sh -c "mkdir /code/static/ -p && python manage.py makemigrations && python manage.py migrate &&
-             python manage.py test && python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+    entrypoint: ./docker-entrypoint.sh
     volumes:
-      - .:/code
       - mdcp_panel_static:/code/staticfiles
     networks:
       - mdcp_panel_net
