@@ -1,5 +1,5 @@
 from django.http.response import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -21,9 +21,9 @@ def create_list_job(request):
         except Exception as e:
             print(str(e))
             return HttpResponse(content="internal server error", status=503)
-        return HttpResponse(content="job submitted successfully", status=201)
+        return redirect('/jobs/' + str(new_job.id))
     elif request.method == 'GET':
-        jobs = Job.objects.filter(user=request.user)
+        jobs = Job.objects.filter(user=request.user).order_by('-created_at')
         return render(request, 'index.html', {'jobs': jobs})
     return HttpResponse(content='method not allowed', status=405)
 
@@ -33,7 +33,7 @@ def retrieve_job(request, id):
     if request.method == 'GET':
         try:
             job = Job.objects.get(user=request.user, id=id)
-            partial_results = JobPartialResult.objects.filter(job=job)
+            partial_results = JobPartialResult.objects.filter(job=job).order_by('index')
         except Job.DoesNotExist:
             return HttpResponse(content='job not found', status=404)
         return render(request, "job.html", context={'executable': job.executable,
