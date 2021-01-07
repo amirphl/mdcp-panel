@@ -1,3 +1,5 @@
+import sched
+import time
 import json
 import logging
 import os
@@ -26,7 +28,8 @@ COMPLETED = os.getenv('COMPLETED')
 IN_PROGRESS = os.getenv('IN_PROGRESS')
 FAILED = os.getenv('FAILED')
 NUM_DEVICES_PER_JOB = int(os.getenv('NUM_DEVICES_PER_JOB'))
-
+FAILED_JOBS_SCHEDULING_INTERVAL = int(
+    os.getenv('FAILED_JOBS_SCHEDULING_INTERVAL'))
 
 assert MQTT_BROKER is not None
 assert DEVICE_REGISTRATION_TOPIC is not None
@@ -39,20 +42,39 @@ assert IN_PROGRESS is not None
 assert FAILED is not None
 assert NUM_DEVICES_PER_JOB is not None
 assert NUM_DEVICES_PER_JOB >= 2
+assert FAILED_JOBS_SCHEDULING_INTERVAL >= 300
 
 logger.info('using env vars:')
 logger.info('MQTT_BROKER = ' + MQTT_BROKER)
 logger.info('DEVICE_REGISTRATION_TOPIC = ' + DEVICE_REGISTRATION_TOPIC)
 logger.info('DEVICE_UNREGISTRATION_TOPIC = ' + DEVICE_UNREGISTRATION_TOPIC)
 logger.info('QOS = ' + str(QOS))
-logger.info('DEVICE = ' + str(DEVICE_))
-logger.info('JOB = ' + str(JOB_))
-logger.info('COMPLETED = ' + str(COMPLETED))
-logger.info('IN_PROGRESS = ' + str(IN_PROGRESS))
-logger.info('FAILED = ' + str(FAILED))
+logger.info('DEVICE = ' + DEVICE_)
+logger.info('JOB = ' + JOB_)
+logger.info('COMPLETED = ' + COMPLETED)
+logger.info('IN_PROGRESS = ' + IN_PROGRESS)
+logger.info('FAILED = ' + FAILED)
+logger.info('FAILED_JOBS_SCHEDULING_INTERVAL = ' +
+            str(FAILED_JOBS_SCHEDULING_INTERVAL))
 logger.info('===============')
 logger.info('===============')
 logger.info('===============')
+
+
+class MockJob:
+    class Executable:
+        def __init__(self, url):
+            self.url = url
+
+    class InputFile:
+        def __init__(self, url):
+            self.url = url
+
+    def __init__(self, id, executable_url, input_file_url, index):
+        self.id = id
+        self.executable = self.Executable(executable_url)
+        self.input_file = self.InputFile(input_file_url)
+        self.index = index
 
 
 def publish(topic, payload):
@@ -83,13 +105,27 @@ c = connect_to_broker(on_connect_factory('no_topic'),
                       on_disconnect_factory('no_topic'))
 c.loop_start()
 
+s = sched.scheduler(time.time, time.sleep)
+
 
 def get_device_key_pattern():
     return DEVICE_ + '*'
 
 
+def get_device_key_regex():
+    return DEVICE_ + '(.*)'
+
+
 def get_device_key(device_id):
     return DEVICE_ + device_id
+
+
+def get_job_key_pattern():
+    return JOB_ + '*'
+
+
+def get_job_key_regex():
+    return JOB_ + '(.*)'
 
 
 def get_job_key(device_id):
@@ -119,9 +155,12 @@ def add_job(device_id, job, index, status):
     key = get_job_key(device_id)
     value = json.dumps({
         'job': str(job.id),
+        'executable_url': job.executable.url,
+        'input_file_url': job.input_file.url,
         'index': index,
         'status': status
     })
+    # TODO later add current NUM_DEVICES_PER_JOB to value since it may change during program life cycles and deployments
     CacheRepository.store(key, value, expire_in_seconds=None)
 
 
@@ -134,6 +173,11 @@ def get_job(device_id):
         return None
     else:
         return json.loads(value)
+
+
+def remove_job(device_id):
+    key = get_job_key(device_id)
+    CacheRepository.delete(key)
 
 
 def has_device_completed_job(device_id):
@@ -212,8 +256,8 @@ def submit_job(job):
     for key in scan_iter:
         if i == NUM_DEVICES_PER_JOB:
             break
-        device_id = re.search("device_(.*)", key.decode()
-                              ).group(1)  # TODO fix pattern
+        device_id = re.search(get_device_key_regex(),
+                              key.decode()).group(1)
         submit_job_to_device(device_id, job, i)
         logger.info('send job %s to device %s with index %s' %
                     (job.id, device_id, i))
@@ -238,8 +282,45 @@ def check_long_running_jobs():
     pass
 
 
+def schedule_failed_jobs(sc):
+    device_key_pattern = get_device_key_pattern()
+    job_key_pattern = get_job_key_pattern()
+    device_iter = CacheRepository.get_scan_iter(device_key_pattern)
+    job_iter = CacheRepository.get_scan_iter(job_key_pattern)
+
+    for job_key in job_iter:
+        old_device_id = re.search(get_job_key_regex(),
+                                  job_key.decode()).group(1)
+        job_info = get_job(old_device_id)
+        if job_info['status'] != FAILED:
+            continue
+
+        device_key = next(device_iter, None)
+        if device_key is None:
+            logger.info(
+                'scheduler: found no active device to send %s job %s' % (FAILED, job_key))
+            break
+
+        device_id = re.search(get_device_key_regex(),
+                              device_key.decode()).group(1)
+        id = job_info['job']
+        executable_url = job_info['executable_url']
+        input_file_url = job_info['input_file_url']
+        index = job_info['index']
+        new_job = MockJob(id, executable_url, input_file_url, index)
+        submit_job_to_device(device_id, new_job, index)
+        # TODO we can change the key structure instead of removing the record
+        remove_job(old_device_id)
+        logger.info('scheduler: send job %s to device %s with index %s' %
+                    (new_job.id, device_id, index))
+    s.enter(FAILED_JOBS_SCHEDULING_INTERVAL, 1, schedule_failed_jobs, (sc,))
+
+
 if __name__ == '__main__':
     subscriptions_handler = handle_subscriptions()
     subscriptions_handler.loop_start()
     unsubscriptions_handler = handle_unsubscriptions()
-    unsubscriptions_handler.loop_forever()
+    unsubscriptions_handler.loop_start()
+    s.enter(FAILED_JOBS_SCHEDULING_INTERVAL, 1, schedule_failed_jobs, (s,))
+    s.run()
+    logger.info("The End.")

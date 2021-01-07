@@ -161,6 +161,8 @@ JOB_ = os.getenv('JOB')
 COMPLETED = os.getenv('COMPLETED')
 IN_PROGRESS = os.getenv('IN_PROGRESS')
 FAILED = os.getenv('FAILED')
+FAILED_JOBS_SCHEDULING_INTERVAL = int(os.getenv(
+    'FAILED_JOBS_SCHEDULING_INTERVAL'))
 
 assert MQTT_BROKER is not None
 assert NUM_DEVICES_PER_JOB is not None
@@ -169,5 +171,5 @@ assert JOB_ is not None
 assert COMPLETED is not None
 assert IN_PROGRESS is not None
 assert FAILED is not None
-
 assert NUM_DEVICES_PER_JOB >= 2
+assert FAILED_JOBS_SCHEDULING_INTERVAL >= 300
