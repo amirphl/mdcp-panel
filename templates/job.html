@@ -24,20 +24,54 @@
     </head>
     <body>
        <div class="col-md-6 offset-md-3 mt-5">
+            <h1>Note: 3 devices runs your job, so you should see atmost 3 partial result files if available.</h1>
             {% if errors %}
                 <h1>{{ errors }}}}</h1>
             {% else %}
-                <div><a href="{{ executable.url }}">click to download executable</a></div>
-                <div><a href="{{ input_file.url }}">click to download input file</a></div>
-                {% if partial_results %}
-                    {% for x in partial_results %}
-                        <a href="{{ x.partial_result_file.url }}">
-                        click to download partial result file with id = {{ x.index }}</a>
-                    {% endfor %}
-                {% else %}
-                    <h1>job is in progress, please wait for the output(s) to become ready ...</h1>
+                <div class="mt-2"><a href="{{ executable.url }}">click to download executable</a></div>
+                <div class="mt-2"><a href="{{ input_file.url }}">click to download input file</a></div>
+                {% if not partial_results %}
+                    <h1>Job is in progress, please wait for the output(s) to become ready ...</h1>
+                    <h1>You should refresh the page to see new results.</h1>
                 {% endif%}
             {% endif %}
         </div>
+        {% if partial_results %}
+        <div class="container">
+            <div class="row mt-2 border rounded">
+                <div class="col-6">
+                    partial result
+                </div>
+                <div class="col-1">
+                    index
+                </div>
+                <div class="col-2">
+                    created at
+                </div>
+            </div>
+            {% for x in partial_results %}
+                <div class="row mt-2 border rounded">
+                    <div class="col-6">
+                        <a href="{{ x.partial_result_file.url }}">
+                            click to download
+                        </a>
+                    </div>
+                    <div class="col-1">
+                        {{ x.index }}
+                    </div>
+                    <div class="col-2">
+                        {{ x.created_at|date:'Y-m-d H:i' }}
+                    </div>
+                </div>
+            {% endfor %}
+            <div class="row mt-2">
+                <a href="/jobs/">
+                    <button type="button" class="btn btn-primary mt-3">
+                        Back to jobs page
+                    </button>
+                </a>
+            </div>
+        </div>
+        {% endif %}
     </body>
 </html>
