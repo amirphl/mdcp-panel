@@ -18,6 +18,8 @@ services:
     image: redis
     networks:
       - mdcp_panel_net
+    volumes:
+      - redis-data:/data
 
   web:
     restart: always
@@ -82,6 +84,7 @@ volumes:
   mosquitto-data: {}
   mosquitto-logs: {}
   mosquitto-conf: {}
+  redis-data: {}
 
 networks:
   mdcp_panel_net: {}
