@@ -11,10 +11,12 @@ from state_manager import submit_job, complete_inprogress_job
 def create_list_job(request):
     if request.method == 'POST':
         try:
+            executable = request.FILES['executable']
+            assert str(executable)[-4:] == '.jar'
             new_job = Job.objects.create(
                 user=request.user, executable=request.FILES['executable'], input_file=request.FILES['input_file'])
             submit_job(new_job)
-        except KeyError:
+        except (KeyError, AssertionError):
             return HttpResponse(content="bad request", status=400)
         except Exception as e:
             print(str(e))
