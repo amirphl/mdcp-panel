@@ -28,8 +28,7 @@ COMPLETED = os.getenv('COMPLETED')
 IN_PROGRESS = os.getenv('IN_PROGRESS')
 FAILED = os.getenv('FAILED')
 NUM_DEVICES_PER_JOB = int(os.getenv('NUM_DEVICES_PER_JOB'))
-FAILED_JOBS_SCHEDULING_INTERVAL = int(
-    os.getenv('FAILED_JOBS_SCHEDULING_INTERVAL'))
+SCHEDULING_INTERVAL = int(os.getenv('SCHEDULING_INTERVAL'))
 
 assert MQTT_BROKER is not None
 assert DEVICE_REGISTRATION_TOPIC is not None
@@ -42,7 +41,7 @@ assert IN_PROGRESS is not None
 assert FAILED is not None
 assert NUM_DEVICES_PER_JOB is not None
 assert NUM_DEVICES_PER_JOB >= 2
-assert FAILED_JOBS_SCHEDULING_INTERVAL >= 300
+assert SCHEDULING_INTERVAL >= 300
 
 logger.info('using env vars:')
 logger.info('MQTT_BROKER = ' + MQTT_BROKER)
@@ -54,8 +53,8 @@ logger.info('JOB = ' + JOB_)
 logger.info('COMPLETED = ' + COMPLETED)
 logger.info('IN_PROGRESS = ' + IN_PROGRESS)
 logger.info('FAILED = ' + FAILED)
-logger.info('FAILED_JOBS_SCHEDULING_INTERVAL = ' +
-            str(FAILED_JOBS_SCHEDULING_INTERVAL))
+logger.info('SCHEDULING_INTERVAL = ' +
+            str(SCHEDULING_INTERVAL))
 logger.info('===============')
 logger.info('===============')
 logger.info('===============')
@@ -277,12 +276,7 @@ def submit_job_to_device(device_id, job, index):
     add_job(device_id, job, index, IN_PROGRESS)
 
 
-def check_long_running_jobs():
-    # TODO
-    pass
-
-
-def schedule_failed_jobs(sc):
+def schedule(sc):
     device_key_pattern = get_device_key_pattern()
     job_key_pattern = get_job_key_pattern()
     device_iter = CacheRepository.get_scan_iter(device_key_pattern)
@@ -292,28 +286,27 @@ def schedule_failed_jobs(sc):
         old_device_id = re.search(get_job_key_regex(),
                                   job_key.decode()).group(1)
         job_info = get_job(old_device_id)
-        if job_info['status'] != FAILED:
+        if job_info['status'] == COMPLETED:
             continue
-
-        device_key = next(device_iter, None)
-        if device_key is None:
+        new_device_key = next(device_iter, None)
+        if new_device_key is None:
             logger.info(
-                'scheduler: found no active device to send %s job %s' % (FAILED, job_key))
+                'scheduler: found no active device to send %s job %s' % (job_info['status'], job_key))
             break
-
-        device_id = re.search(get_device_key_regex(),
-                              device_key.decode()).group(1)
+        new_device_id = re.search(get_device_key_regex(),
+                                  new_device_key.decode()).group(1)
         id = job_info['job']
         executable_url = job_info['executable_url']
         input_file_url = job_info['input_file_url']
         index = job_info['index']
         new_job = MockJob(id, executable_url, input_file_url, index)
-        submit_job_to_device(device_id, new_job, index)
+        submit_job_to_device(new_device_id, new_job, index)
         # TODO we can change the key structure instead of removing the record
         remove_job(old_device_id)
         logger.info('scheduler: send job %s to device %s with index %s' %
-                    (new_job.id, device_id, index))
-    s.enter(FAILED_JOBS_SCHEDULING_INTERVAL, 1, schedule_failed_jobs, (sc,))
+                    (new_job.id, new_device_id, index))
+
+    s.enter(SCHEDULING_INTERVAL, 1, schedule, (sc,))
 
 
 if __name__ == '__main__':
@@ -321,6 +314,6 @@ if __name__ == '__main__':
     subscriptions_handler.loop_start()
     unsubscriptions_handler = handle_unsubscriptions()
     unsubscriptions_handler.loop_start()
-    s.enter(FAILED_JOBS_SCHEDULING_INTERVAL, 1, schedule_failed_jobs, (s,))
+    s.enter(SCHEDULING_INTERVAL, 1, schedule, (s,))
     s.run()
     logger.info("The End.")
