@@ -17,6 +17,7 @@ class Job(models.Model):
 class JobPartialResult(models.Model):
     job = models.ForeignKey(Job, on_delete=models.CASCADE)
     index = models.IntegerField()
+    consumed_time = models.IntegerField(default=-1)
     partial_result_file = models.FileField(
         upload_to='jobs/%Y/%m/%d/result_files/')
     created_at = models.DateTimeField(default=datetime.now, editable=False)
