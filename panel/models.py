@@ -11,7 +11,7 @@ class Job(models.Model):
                           default=uuid.uuid4, editable=False)
     executable = models.FileField(upload_to='jobs/%Y/%m/%d/executables/')
     input_file = models.FileField(upload_to='jobs/%Y/%m/%d/input_files/')
-    created_at = models.DateTimeField(default=datetime.now(), editable=False)
+    created_at = models.DateTimeField(default=datetime.now, editable=False)
 
 
 class JobPartialResult(models.Model):
@@ -19,4 +19,4 @@ class JobPartialResult(models.Model):
     index = models.IntegerField()
     partial_result_file = models.FileField(
         upload_to='jobs/%Y/%m/%d/result_files/')
-    created_at = models.DateTimeField(default=datetime.now(), editable=False)
+    created_at = models.DateTimeField(default=datetime.now, editable=False)
