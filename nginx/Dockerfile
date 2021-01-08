@@ -1,5 +1,7 @@
-FROM tutum/nginx
+FROM nginx:1.19.6-alpine
 
-RUN rm /etc/nginx/sites-enabled/default
+COPY sites-enabled/ /etc/nginx/sites-enabled/
+COPY nginx.conf /etc/nginx/
+COPY docker-entrypoint.sh /
 
-COPY sites-enabled/ /etc/nginx/sites-enabled
+ENTRYPOINT [ "/docker-entrypoint.sh" ]

@@ -24,9 +24,8 @@ services:
     build:
       context: .
     command: >
-      sh -c "mkdir /code/static/ -p && python manage.py makemigrations && python manage.py migrate &&
-             python manage.py test && python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+      sh -c "mkdir /code/static/ -p && python manage.py migrate &&
+             python manage.py test && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/code
       - mdcp_panel_static:/code/staticfiles
@@ -36,7 +35,6 @@ services:
       - db
       - redis
       - mosquitto
-      - state_manager
     env_file:
       - .env
 
