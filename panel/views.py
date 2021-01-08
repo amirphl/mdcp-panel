@@ -33,7 +33,8 @@ def retrieve_job(request, id):
     if request.method == 'GET':
         try:
             job = Job.objects.get(user=request.user, id=id)
-            partial_results = JobPartialResult.objects.filter(job=job).order_by('index')
+            partial_results = JobPartialResult.objects.filter(
+                job=job).order_by('index')
         except Job.DoesNotExist:
             return HttpResponse(content='job not found', status=404)
         return render(request, "job.html", context={'executable': job.executable,
@@ -49,8 +50,11 @@ def upload_partial_result(request, id):
         try:
             # job = Job.objects.get(user=request.user, id=id) TODO make it secure
             job = Job.objects.get(id=id)
-            JobPartialResult.objects.create(job=job, index=request.POST['index'],
-                                            partial_result_file=request.FILES['file'])
+            file = request.FILES['file']
+            index = request.POST['index']
+            consumed_time = request.POST['consumed_time']
+            JobPartialResult.objects.create(
+                job=job, index=index, consumed_time=consumed_time, partial_result_file=file)
             device_id = request.POST['device_id']
             try:
                 complete_inprogress_job(device_id)
