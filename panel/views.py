@@ -48,7 +48,7 @@ def retrieve_job(request, id):
 def upload_partial_result(request, id):
     if request.method == 'POST':
         try:
-            # job = Job.objects.get(user=request.user, id=id) TODO make it secure
+            # job = Job.objects.get(user=request.user, id=id) TODO make it secure (authentication, rate limit)
             job = Job.objects.get(id=id)
             file = request.FILES['file']
             index = request.POST['index']
