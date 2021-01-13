@@ -157,9 +157,9 @@ def add_job(device_id, job, index, status):
         'executable_url': job.executable.url,
         'input_file_url': job.input_file.url,
         'index': index,
+        'num_devices_per_job': NUM_DEVICES_PER_JOB,
         'status': status
     })
-    # TODO later add current NUM_DEVICES_PER_JOB to value since it may change during program life cycles and deployments
     CacheRepository.store(key, value, expire_in_seconds=None)
 
 
