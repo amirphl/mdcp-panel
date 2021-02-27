@@ -67,7 +67,7 @@ services:
 
   mosquitto:
     restart: always
-    image: eclipse-mosquitto
+    image: eclipse-mosquitto:1.5
     ports:
       - 1883:1883
       - 8883:8883
