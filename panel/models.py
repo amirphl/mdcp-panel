@@ -11,7 +11,10 @@ class Job(models.Model):
                           default=uuid.uuid4, editable=False)
     executable = models.FileField(upload_to='jobs/%Y/%m/%d/executables/')
     input_file = models.FileField(upload_to='jobs/%Y/%m/%d/input_files/')
+    outputs_merger = models.FileField(
+        upload_to='jobs/%Y/%m/%d/outputs_mergers/', null=True)
     created_at = models.DateTimeField(default=datetime.now, editable=False)
+    final_result_path = models.TextField(null=True)
 
 
 class JobPartialResult(models.Model):
