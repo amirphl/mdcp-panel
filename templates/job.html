@@ -30,6 +30,9 @@
             {% else %}
                 <div class="mt-2"><a href="{{ executable.url }}">click to download executable</a></div>
                 <div class="mt-2"><a href="{{ input_file.url }}">click to download input file</a></div>
+                {% if final_result %}
+                    <div class="mt-2"><a href="{{ final_result }}">click to download final result</a></div>
+                {% endif%}
                 {% if not partial_results %}
                     <h1>Job is in progress, please wait for the output(s) to become ready ...</h1>
                     <h1>You should refresh the page to see new results.</h1>
